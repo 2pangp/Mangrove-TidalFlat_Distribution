@@ -1,0 +1,67 @@
+# setwd("")
+
+# library
+library(terra)
+library(raster)
+
+samp04 = shapefile("E:/Nus/dian/2004sample.shp")
+samp07 = shapefile("E:/Nus/dian/2007sample.shp")
+samp10 = shapefile("E:/Nus/dian/2010sample.shp")
+samp13 = shapefile("E:/Nus/dian/2013sample.shp")
+samp16 = shapefile("E:/Nus/dian/2016sample.shp") 
+samp19 = shapefile("E:/Nus/dian/2019sample.shp") 
+
+GDP2017 = rast("G:/NUS/population/landscan-global-2017-assets/landscan-global-2017.tif")
+GDP2018 = rast("G:/NUS/population/landscan-global-2018-assets/landscan-global-2018.tif")
+GDP2019 = rast("G:/NUS/population/landscan-global-2019-assets/landscan-global-2019.tif")
+GDP17_19mean = mean(GDP2017,GDP2018,GDP2019)
+writeRaster(GDP17_19mean,"G:/data/Pop/Pop17_19.tif", overwrite = T)
+
+GDP04 = raster("G:/data/GDP_real1/GDP99_04.tif")
+GDP07 = raster("G:/data/GDP_real1/GDP05_07.tif")
+GDP10 = raster("G:/data/GDP_real1/GDP08_10.tif")
+GDP13 = raster("G:/data/GDP_real1/GDP11_13.tif")
+GDP16 = raster("G:/data/GDP_real1/GDP14_16.tif")
+GDP19 = raster("G:/data/GDP_real1/GDP17_19.tif")
+
+
+GDP = data.frame(matrix(ncol = 6, nrow = 100000))
+GDP[,1] = raster::extract(GDP04, samp04, buffer=2000, fun=mean, na.rm = T)
+GDP[,2] = raster::extract(GDP07, samp07, buffer=2000, fun=mean, na.rm = T)
+GDP[,3] = raster::extract(GDP10, samp10, buffer=2000, fun=mean, na.rm = T)
+GDP[,4] = raster::extract(GDP13, samp13, buffer=2000, fun=mean, na.rm = T)
+GDP[,5] = raster::extract(GDP16, samp16, buffer=2000, fun=mean, na.rm = T)
+GDP[,6] = raster::extract(GDP19, samp19, buffer=2000, fun=mean, na.rm = T)
+write.csv(GDP, "./data2/GDP.csv", row.names = F)
+
+Country = shapefile("E:/NUS/WorldCountries/WorldCountriesWithISO.shp")
+ISO3 = data.frame(matrix(ncol = 4, nrow = 200000))
+ISO3[,1] = raster::extract(Country , samp07, buffer=2000, fun=mean, )
+ISO3[,2] = raster::extract(Country , samp10, buffer=2000, fun=mean, )
+ISO3[,3] = raster::extract(Country , samp13, buffer=2000, fun=mean, )
+ISO3[,4] = raster::extract(Country , samp16, buffer=2000, fun=mean, )
+write.csv(ISO3, "./data3/ISO3.csv", row.names = F)
+
+
+hf19 = raster("G:/data/human/human17_19.tif")
+hf = data.frame(matrix(ncol = 1, nrow = 100000))
+hf[,1] = raster::extract(hf19, samp19 , buffer=2000, fun=mean, na.rm = T)
+colnames(hf) = c("2019")
+write.csv(hf, "./data2/human19.csv", row.names = F)
+
+pop19 = raster("G:/data/Pop/Pop17_19.tif")
+pop = data.frame(matrix(ncol = 1, nrow = 100000))
+pop[,1] = raster::extract(pop19, samp19 , buffer=2000, fun=mean, na.rm = T)
+colnames(pop) = c("2019")
+write.csv(pop, "./data2/Pop2019.csv", row.names = F)
+
+CityAccess = raster("G:/data/Accessibility to cities/accessibility_to_cities_2015_v1.0/accessibility_to_cities_2015_v1.0.tif")
+RoadAccess = raster("G:/data/road/road22.tif")
+RoadAccess = projectRaster(RoadAccess, crs = crs(CityAccess))
+CityAccess = calc(CityAccess, fun = function(x){ifelse((x < 0) & (x > -9999), 0, x)})
+CityAccess = calc(CityAccess, fun = function(x){ifelse((x == -9999), NA, x)})
+Access = data.frame(matrix(ncol = 2, nrow = 100000))
+Access[,1] = raster::extract(CityAccess, samp16, buffer=2000, fun=mean, na.rm = T)
+Access[,2] = raster::extract(RoadAccess, samp16, buffer=2000, fun=mean, na.rm = T)
+colnames(Access) = c("city","road")
+write.csv(Access, "./data2/2019Access.csv", row.names = F)
