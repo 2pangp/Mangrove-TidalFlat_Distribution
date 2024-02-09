@@ -1,6 +1,6 @@
 # setwd("")
 
-# Library
+# Import packages.
 library(raster)
 library(terra)
 

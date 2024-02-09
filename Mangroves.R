@@ -1,24 +1,19 @@
+# Set work directory.
 setwd("E:/NUS/")
 
-#library
+# Import packages.
 library(ranger)
 library(terra)
 library(raster)
 
-#sample points
-years <- c(2007, 2010, 2013, 2016, 2019)
-samps <- list()
-for (year in years)
-{
-  samps[[paste0("samp", year)]] <- vect(paste0("E:/NUS/sample/", year, "sample.shp"))
-}
-# samp07 = vect("E:/NUS/sample/2007sample.shp")
-# samp10 = vect("E:/NUS/sample/2010sample.shp")
-# samp13 = vect("E:/NUS/sample/2013sample.shp")
-# samp16 = vect("E:/NUS/sample/2016sample.shp")
-# samp19 = vect("E:/NUS/sample/2019sample.shp") 
+# Import sample points (created using spatial random sampling in ArcGIS).
+samp07 = vect("E:/NUS/sample/2007sample.shp")
+samp10 = vect("E:/NUS/sample/2010sample.shp")
+samp13 = vect("E:/NUS/sample/2013sample.shp")
+samp16 = vect("E:/NUS/sample/2016sample.shp")
+samp19 = vect("E:/NUS/sample/2019sample.shp")
 
-#data extraction
+# Extract access data using sample points (using raster package because "buffer" parameter is needed).
 CityAccess = raster("G:/data/Accessibility to cities/accessibility_to_cities_2015_v1.0/accessibility_to_cities_2015_v1.0.tif")
 RoadAccess = raster("G:/data/road/road22.tif")
 RoadAccess = projectRaster(RoadAccess, crs = crs(CityAccess))
@@ -43,7 +38,7 @@ Access1[,5] = raster::extract(RoadAccess, samp19, buffer=2000, fun=mean, na.rm =
 colnames(Access1) = c("07","10","13","16","19")
 write.csv(Access1, "./data/RoadAccess.csv", row.names = F)
 
-#HFP
+# Extract human footprint data using sample points.
 human07 = raster("G:/data/human/human05_07.tif")
 human10 = raster("G:/data/human/human08_10.tif")
 human13 = raster("G:/data/human/human11_13.tif")
@@ -64,6 +59,7 @@ human[,5] = raster::extract(human191, samp19, buffer=2000, fun=mean, na.rm = T)
 colnames(human) = c("07","10","13","16","19")
 write.csv(human, "./data/human.csv", row.names = F)
 
+# Extract population data using sample points.
 Pop07 = raster("G:/data/Pop/Pop05_07.tif")
 Pop10 = raster("G:/data/Pop/Pop08_10.tif")
 Pop13 = raster("G:/data/Pop/Pop11_13.tif")
@@ -79,6 +75,7 @@ Pop[,5] = raster::extract(Pop19, samp19, buffer=2000, fun=mean, na.rm = T)
 colnames(Pop) = c("07","10","13","16","19")
 write.csv(Pop, "./data/Pop.csv", row.names = F)
 
+# Extract GDP data using sample points.
 GDP07 = raster("G:/data/GDP_real1/GDP05_07.tif")
 GDP10 = raster("G:/data/GDP_real1/GDP08_10.tif")
 GDP13 = raster("G:/data/GDP_real1/GDP11_13.tif")
@@ -95,7 +92,7 @@ GDP[,5] = raster::extract(GDP19, samp19, buffer=2000, fun=mean, na.rm = T)
 colnames(GDP) = c("07","10","13","16","19")
 write.csv(GDP, "./data/GDP.csv", row.names = F)
 
-# Combining data and create a data frame
+# Combining data of all variables to form a single dataframe.
 CityAccess = read.csv("./data/CityAccess.csv")
 RoadAccess = read.csv("./data/RoadAccess.csv")
 human = read.csv("./data/human.csv")
@@ -110,7 +107,7 @@ Data$pop = c(Pop$X07,Pop$X10,Pop$X13,Pop$X16,Pop$X19)
 Data$city = c(CityAccess$X07,CityAccess$X10,CityAccess$X13,CityAccess$X16,CityAccess$X19)
 Data$road =  c(RoadAccess$X07,RoadAccess$X10,RoadAccess$X13,RoadAccess$X16,RoadAccess$X19)
 
-#Get latitude and longitude data
+#Get latitude and longitude data.
 samp07[,c('lon', 'lat')] = geom(samp07, df = T)[,c('x', 'y')]
 samp10[,c('lon', 'lat')] = geom(samp10, df = T)[,c('x', 'y')]
 samp13[,c('lon', 'lat')] = geom(samp13, df = T)[,c('x', 'y')]
@@ -120,7 +117,7 @@ samp = rbind(samp07, samp10, samp13, samp16, samp19)
 Data = cbind(Data, data.frame(samp[,c('lon', 'lat')]))
 write.csv(Data, "./data/Data.csv", row.names = F)
 
-#Get Protected area data
+#Get protected area data.
 PA = raster("./DataMap/PAs.tif")
 PA07 = raster::extract(PA, samp07, ID = F)
 PA10 = raster::extract(PA, samp10, ID = F)
@@ -129,7 +126,7 @@ PA16 = raster::extract(PA, samp16, ID = F)
 PA19 = raster::extract(PA, samp19, ID = F)
 Data$PA = c(PA07,PA10,PA13,PA16,PA19)
 
-#Get crop suitability data
+#Get crop suitability data.
 Coconut = raster("G:/data/suitability/Coconut2010.tif")
 Coffee = raster("G:/data/suitability/Coffee2010.tif")
 Olp = raster("G:/data/suitability/olp2010.tif")
@@ -174,7 +171,21 @@ Sugarcane16 = raster::extract(Sugarcane, samp16)
 Sugarcane19 = raster::extract(Sugarcane, samp19)
 Data$sugarcane = c(Sugarcane07,Sugarcane10,Sugarcane13,Sugarcane16,Sugarcane19)
 
-#Get loss previous data
+#Get mangrove loss data in previous periods (indicating existing losses in zone).
+loss_prev_04 = focal(Loss2004, w=matrix(1,11,11), fun= mean,na.rm=T, pad=T, padValue=NA) 
+loss_prev_07 = focal(loss20071, w=matrix(1,11,11), fun= mean,na.rm=T, pad=T, padValue=NA) 
+loss_prev_10 = focal(loss20101, w=matrix(1,11,11), fun= mean,na.rm=T, pad=T, padValue=NA) 
+loss_prev_13 = focal(loss20131, w=matrix(1,11,11), fun= mean,na.rm=T, pad=T, padValue=NA) 
+loss_prev_16 = focal(loss20161, w=matrix(1,11,11), fun= mean,na.rm=T, pad=T, padValue=NA) 
+loss_prev_19 = focal(loss20191, w=matrix(1,11,11), fun= mean,na.rm=T, pad=T, padValue=NA) 
+
+writeRaster(loss_prev_04, "D:/tpp/data2/lossprev/loss_prev_04.tif", overwrite=T)
+writeRaster(loss_prev_07, "D:/tpp/data2/lossprev/loss_prev_07.tif", overwrite=T)
+writeRaster(loss_prev_10, "D:/tpp/data2/lossprev/loss_prev_10.tif", overwrite=T)
+writeRaster(loss_prev_13, "D:/tpp/data2/lossprev/loss_prev_13.tif", overwrite=T)
+writeRaster(loss_prev_16, "D:/tpp/data2/lossprev/loss_prev_16.tif", overwrite=T)
+writeRaster(loss_prev_19, "D:/tpp/data2/lossprev/loss_prev_19.tif", overwrite=T)
+
 Loss04 = raster("E:/Mangrove/crop/loss_prev_04.tif")
 Loss07 = raster("E:/Mangrove/crop/loss_prev_07.tif")
 Loss10 = raster("E:/Mangrove/crop/loss_prev_10.tif")
@@ -185,7 +196,7 @@ Data$loss_prev = c(raster::extract(Loss04, samp07),
                    raster::extract(Loss10, samp13),
                    raster::extract(Loss13, samp16),
                    raster::extract(Loss16, samp19))
-#Get loss data
+#Get mangrove loss data.
 Loss07 = raster("E:/NUS/data2/Loss2007.tif")
 Loss10 = raster("E:/NUS/data2/Loss2010.tif")
 Loss13 = raster("E:/NUS/data2/Loss2013.tif")
@@ -196,10 +207,10 @@ Data$loss = c(raster::extract(Loss07, samp07),
               raster::extract(Loss13, samp13),
               raster::extract(Loss16, samp16),
               raster::extract(Loss19, samp19))
-#Get ISO3 data
+#Get ISO3 data (clear reference for country name).
 Data$ISO3 = c(ISO307$ISO3,ISO310$ISO3,ISO313$ISO3,ISO316$ISO3,ISO319$ISO3)
 
-#Get River and coastline data
+#Get access data for river and coastline.
 river = raster("E:/NUS/new data/river.tif")
 coastline = raster("E:/NUS/new data/coastline1.tif")
 Data$river =  c(raster::extract(river, samp07),
@@ -215,7 +226,7 @@ Data$coastline =  c(raster::extract(coastline, samp07),
 
 write.csv(Data,"./data/Data_raw.csv", row.names = F)
 
-#Data sorting and processing
+#Data cleaning.
 Data = read.csv("./data/Data_raw.csv")
 colnames(Data)
 Data = na.omit(Data)
@@ -230,13 +241,6 @@ Q_pop = quantile(Data$pop, probs = c(0.25, 0.75), na.rm = T)
 
 Data = Data[ - which((Data$gdp > Q_gdp[2] + 5 * IQR_gdp) | (Data$gdp < Q_gdp[1] - 5 * IQR_gdp) |
                     (Data$pop > Q_pop[2] + 5 * IQR_pop) | (Data$pop < Q_pop[1] - 5 * IQR_pop) ),]
-#Data = Data[ - which((Data$gdp_var > Q_gdp_var[2] + 9 * IQR_gdp_var) | (Data$gdp_var < Q_gdp_var[1] - 9 * IQR_gdp_var)),]
-#Data = Data[ - which((Data$hf > Q_hf[2] + 5 * IQR_hf) | (Data$hf < Q_hf[1] - 5 * IQR_hf)),]
-#Data = Data[ - which((Data$hf_var > Q_hf_var[2] + 5 * IQR_hf_var) | (Data$hf_var < Q_hf_var[1] - 5 * IQR_hf_var)),]
-#Data = Data[ - which((Data$pop > Q_pop[2] + 5 * IQR_pop) | (Data$pop < Q_pop[1] - 5 * IQR_pop)),]
-#Data = Data[ - which((Data$pop_var > Q_pop_var[2] + 5 * IQR_pop_var) | (Data$pop_var < Q_pop_var[1] - 5 * IQR_pop_var)),]
-#Data = Data[ - which((Data$city > Q_city[2] + 1.5 * IQR_city) | (Data$city < Q_city[1] - 1.5 * IQR_city)),]
-#Data = Data[ - which((Data$road > Q_road[2] + 1.5 * IQR_road) | (Data$road < Q_road[1] - 1.5 * IQR_road)),]
 write.csv(Data,"./data/Data1.csv", row.names = F)
 
 Data1 = read.csv("./data/Data1.csv")
@@ -263,8 +267,7 @@ Data1$coastline = scale(Data1$coastline)[,1]
 
 write.csv(Data1,"./data/Mangrove.csv", row.names = F)
 
-
-# Modelling
+# Fitting machine learning models.
 library(tidyverse)
 library(terra)
 library(raster)
@@ -274,8 +277,8 @@ library(gbm)
 library(caret)
 Mangrove = read.csv("./data/Mangrove.csv")
 Mangrove = Mangrove[c("loss","gdp", "hf", "pop", "city", "road","PA", "coconut", "coffee", "olp", "rice", "rubber", "sugarcane","loss_prev")]
-#colnames(Mangrove) = c("loss","gdp", "hf", "pop", "city", "road","PA", "coconut", "coffee", "olp", "rice", "rubber", "sugarcane","loss_prev")
-#01 data split
+
+# Split data into training and testing set.
 head(Mangrove)
 set.seed(10)
 randidx = sample(nrow(Mangrove), 0.8*nrow(Mangrove))
@@ -284,18 +287,18 @@ test_Mangrove = Mangrove[-randidx,]
 str(Mangrove)
 mod_f = as.formula(loss ~ gdp  + hf  + pop  + city + road + PA + coconut + coffee + olp + 
                      rice + rubber + sugarcane+loss_prev+river+coastline)
+
+# Fit random forest model.
 RFmodel = ranger(mod_f,data= train_Mangrove, num.trees = 300, mtry = 15/3,importance = 'impurity', verbose = T)
 saveRDS(RFmodel, "./data/RF1.rds")
 
-# Variable importance
+# Calculate variable importance.
 importance(RFmodel)
 pdp = partial(RFmodel,
               train = train_Mangrove,
               pred.var = 'loss_prev')
-line(pdp$loss_prev, pdp$yhat, type = 'l')
 
-
-# Testing
+# Test the prediction accuracy of random forest model.
 RFmodel = readRDS("./data/RF1.rds")
 RFPred = predict(RFmodel, data = test_Mangrove)
 test_Mangrove$pred <- RFPred$predictions
@@ -307,8 +310,7 @@ summary(test_mod)
 cor(train_Mangrove$loss, predict(RFmodel, train_Mangrove, n.trees = 300)$predictions) #RSQ_Trn
 cor(test_Mangrove$loss, predict(RFmodel, test_Mangrove, n.trees = 300)$predictions) #RSQ_Tst
 
-
-# Prediction
+# Make prediction using random forest model.
 RFmodel = readRDS("./data/RF1.rds")
 pred_list = rast("./predict/2030ssp1pred_list.tif")
 pred_list$city = lapp(pred_list$city, function(x){ifelse(x < 0, 0, x)})
@@ -339,8 +341,7 @@ writeRaster(PredRas, "./predict/2030ssp1_pred.tif")
 plot(PredRas)
 summary(RFmodel)
 
-
-#BRT modelling
+# Fit boosted regression tree model.
 brtMan = gbm(
   loss ~ gdp  + hf  + pop  + city + road + PA + coconut + coffee + olp + 
     rice + rubber + sugarcane+loss_prev+river+coastline,
@@ -372,13 +373,12 @@ plot(brtMan, i = "rubber")
 plot(brtMan, i = "olp")
 plot(brtMan, i = "loss_prev")
 
-
-# Setting environment. ----------------------------------------------------
+# Use GLMM / GAMM to evaluate the effects of protected areas. ----------------------------------------------------
 
 setwd("/Users/zhangfengqi/Desktop/Mangroves") # mac
 setwd("C:/Users/e0950361/Desktop/iCloudDrive/Desktop/Mangroves") # windows
 
-#library
+# Import packages.
 library(MatchIt)
 library(terra)
 library(mgcv)
@@ -389,7 +389,7 @@ library(MASS)
 library(lme4)
 library(DHARMa)
 
-# Data processing ---------------------------------------------------------
+# Data processing.
 
 data <- read.csv("./data/Mangrove.csv")
 data <- na.omit(data)
@@ -422,7 +422,7 @@ data$PA = apply(matrix(data$PA_cat), MARGIN = 1, FUN = pa_cat)
 data = data[, c('year', 'ISO3', 'loss', 'gdp', 'hf', 'pop', 'city', 'road', 'river', 'coastline', 'PA', 'PA_cat', 'coconut', 'coffee', 'olp', 'rice', 'rubber', 'sugarcane', 'loss_prev')]
 write.csv(data, "./data/Mangrove.csv", row.names = F)
 
-# Fitting GLM model -------------------------------------------------------
+# Fit GLM model.
 data <- read.csv("./data/Mangrove.csv")
 
 mod_f <- as.formula(loss ~ gdp  + hf  + pop  + city + road + PA + coconut + coffee + olp + rice + rubber + sugarcane + river + coastline + loss_prev)
@@ -437,18 +437,18 @@ mangrove$PA_cat <- factor(mangrove$PA_cat, levels = c('non-PA', 'Ia', 'Ib', 'II'
 
 str(mangrove)
 
-# Fitting a GLMM model ----------------------------------------------------
-# glmm1 <- glmmPQL(data = mangrove, 
-#            family = 'quasibinomial',
-#            loss ~ PA + gdp + hf + pop + city + road + coconut + coffee + olp + rice + rubber + sugarcane, random = ~1|ISO3) #year as intercept, countries as intercept
-# summary(glmm1)
-# saveRDS(glmm1, "./models/glmm1.rds")
-# 
-# glmm2 <- glmmPQL(data = mangrove, 
-#                  family = 'quasibinomial',
-#                  loss ~ PA_cat + gdp + hf + pop + city + road + coconut + coffee + olp + rice + rubber + sugarcane, random = ~1|ISO3) #year as intercept, countries as intercept
-# summary(glmm2)
-# saveRDS(glmm2, "./models/glmm2.rds")
+# Fitting a GLMM models.
+glmm1 <- glmmPQL(data = mangrove,
+           family = 'quasibinomial',
+           loss ~ PA + gdp + hf + pop + city + road + coconut + coffee + olp + rice + rubber + sugarcane, random = ~1|ISO3) #year as intercept, countries as intercept
+summary(glmm1)
+saveRDS(glmm1, "./models/glmm1.rds")
+
+glmm2 <- glmmPQL(data = mangrove,
+                 family = 'quasibinomial',
+                 loss ~ PA_cat + gdp + hf + pop + city + road + coconut + coffee + olp + rice + rubber + sugarcane, random = ~1|ISO3) #year as intercept, countries as intercept
+summary(glmm2)
+saveRDS(glmm2, "./models/glmm2.rds")
 
 glmm3 <- glmmPQL(data = mangrove, 
                  family = 'binomial',
@@ -464,9 +464,6 @@ saveRDS(glmm4, "./models/glmm4.rds")
 
 # (exp(-2.24 - 0.47)) / (1 + (exp(-2.24 - 0.47)))
 # (exp(-2.24)) / (1 + (exp(-2.24)))
-
-
-
 
 # Fitting GAMM model ------------------------------------------------------
 
