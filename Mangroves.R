@@ -7,11 +7,11 @@ library(terra)
 library(raster)
 
 # Import sample points (created using spatial random sampling in ArcGIS).
-samp07 = vect("E:/NUS/sample/2007sample.shp")
-samp10 = vect("E:/NUS/sample/2010sample.shp")
-samp13 = vect("E:/NUS/sample/2013sample.shp")
-samp16 = vect("E:/NUS/sample/2016sample.shp")
-samp19 = vect("E:/NUS/sample/2019sample.shp")
+samp07 = shapefile("E:/NUS/sample/2007sample.shp")
+samp10 = shapefile("E:/NUS/sample/2010sample.shp")
+samp13 = shapefile("E:/NUS/sample/2013sample.shp")
+samp16 = shapefile("E:/NUS/sample/2016sample.shp")
+samp19 = shapefile("E:/NUS/sample/2019sample.shp")
 
 # Extract access data using sample points (using raster package because "buffer" parameter is needed).
 CityAccess = raster("G:/data/Accessibility to cities/accessibility_to_cities_2015_v1.0/accessibility_to_cities_2015_v1.0.tif")
